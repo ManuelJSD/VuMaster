@@ -18,11 +18,21 @@ local defaults = {
     pinned     = false, -- slider anclado por defecto: no
     sliderPos  = nil,   -- {x, y} posición guardada del panel; nil = junto al minimapa
     expanded   = false, -- sub-panel de sonidos adicionales expandido
+    isMuted    = false, -- estado de silencio global
+    panelColor = {0.1, 0.1, 0.1, 0.85}, -- color de fondo del panel (Classic Noir)
 }
 
 -- Altura del panel en cada estado
 local PANEL_H_COLLAPSED = 70
-local PANEL_H_EXPANDED  = 200
+local PANEL_H_EXPANDED  = 225
+
+--- Helper para aplicar el color a los paneles
+local function ApplyPanelColor(r, g, b, a)
+    local col = {r, g, b, a or 0.85}
+    if VuMasterDB then VuMasterDB.panelColor = col end
+    if VuMasterSliderPanel then VuMasterSliderPanel:SetBackdropColor(unpack(col)) end
+    if VuMasterExtraPanel then VuMasterExtraPanel:SetBackdropColor(unpack(col)) end
+end
 
 ----------------------------------------------------------------------
 --  Utilidades de posición en el minimapa
@@ -121,6 +131,31 @@ titleText:SetPoint("TOP", sliderPanel, "TOP", 0, -8)
 titleText:SetText("Volumen Maestro")
 titleText:SetTextColor(1, 0.82, 0, 1) -- dorado
 
+-- Botón Mute
+local muteButton = CreateFrame("Button", "VuMasterMuteButton", sliderPanel)
+muteButton:SetSize(16, 16)
+muteButton:SetPoint("TOPLEFT", sliderPanel, "TOPLEFT", 6, -6)
+local muteIcon = muteButton:CreateTexture(nil, "ARTWORK")
+muteIcon:SetAllPoints()
+muteIcon:SetAtlas("voicechat-icon-speaker") -- Icono de altavoz inicial
+
+muteButton:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    GameTooltip:SetText(VuMasterDB and VuMasterDB.isMuted and "Desilenciar" or "Silenciar todo", 1, 1, 1)
+    GameTooltip:Show()
+end)
+muteButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+muteButton:SetScript("OnClick", function()
+    local newState = (tonumber(GetCVar("Sound_EnableAllSound")) or 1) == 1 and 0 or 1
+    SetCVar("Sound_EnableAllSound", newState)
+    if VuMasterDB then VuMasterDB.isMuted = (newState == 0) end
+    muteIcon:SetAtlas(newState == 0 and "voicechat-icon-speaker-mute" or "voicechat-icon-speaker")
+    if GameTooltip:IsOwned(muteButton) then
+        GameTooltip:SetText(newState == 0 and "Desilenciar" or "Silenciar todo", 1, 1, 1)
+    end
+end)
+
 -- Slider de volumen
 local volumeSlider = CreateFrame("Slider", "VuMasterVolumeSlider", sliderPanel, "OptionsSliderTemplate")
 volumeSlider:SetPoint("TOP", titleText, "BOTTOM", 0, -8)
@@ -166,7 +201,7 @@ end)
 --  Sub-panel de sonidos adicionales
 ----------------------------------------------------------------------
 local extraPanel = CreateFrame("Frame", "VuMasterExtraPanel", sliderPanel, "BackdropTemplate")
-extraPanel:SetSize(192, 120)
+extraPanel:SetSize(192, 145)
 extraPanel:SetPoint("TOP", volumeSlider, "BOTTOM", 0, -22)
 extraPanel:Hide()
 
@@ -254,6 +289,71 @@ end
 for i, ch in ipairs(soundChannels) do
     extraSliders[i] = CreateSoundSlider(extraPanel, ch, i)
 end
+
+----------------------------------------------------------------------
+--  Botones de Perfiles y Colores
+----------------------------------------------------------------------
+local btnBanda = CreateFrame("Button", "VuMasterProfileRaid", extraPanel, "UIPanelButtonTemplate")
+btnBanda:SetSize(55, 20)
+btnBanda:SetPoint("BOTTOMLEFT", extraPanel, "BOTTOMLEFT", 6, 8)
+btnBanda:SetText("Banda")
+
+local btnPaseo = CreateFrame("Button", "VuMasterProfileWorld", extraPanel, "UIPanelButtonTemplate")
+btnPaseo:SetSize(55, 20)
+btnPaseo:SetPoint("BOTTOMRIGHT", extraPanel, "BOTTOMRIGHT", -6, 8)
+btnPaseo:SetText("Paseo")
+
+-- Forward declaration needed for SyncExtraSliders which is defined below
+-- but we simply inline the setting or rely on the game updating it
+btnBanda:SetScript("OnClick", function()
+    SetCVar("Sound_MusicVolume", 0.1)
+    SetCVar("Sound_SFXVolume", 0.6)
+    SetCVar("Sound_DialogVolume", 1.0)
+    SetCVar("Sound_AmbienceVolume", 0.3)
+    -- Reflejar en la UI
+    extraSliders[1]:SetValue(10)
+    extraSliders[2]:SetValue(60)
+    extraSliders[3]:SetValue(100)
+    extraSliders[4]:SetValue(30)
+end)
+
+btnPaseo:SetScript("OnClick", function()
+    SetCVar("Sound_MusicVolume", 0.8)
+    SetCVar("Sound_SFXVolume", 0.8)
+    SetCVar("Sound_DialogVolume", 0.8)
+    SetCVar("Sound_AmbienceVolume", 0.8)
+    extraSliders[1]:SetValue(80)
+    extraSliders[2]:SetValue(80)
+    extraSliders[3]:SetValue(80)
+    extraSliders[4]:SetValue(80)
+end)
+
+-- Temas de Color (3 cuadros pequeños centrados en la parte inferior de extraPanel)
+local colors = {
+    {r=0.1,  g=0.1,  b=0.1},   -- Noir/Classic
+    {r=0.25, g=0.05, b=0.05},  -- Horda
+    {r=0.05, g=0.1,  b=0.25},  -- Alianza
+}
+local c1 = CreateFrame("Button", nil, extraPanel)
+c1:SetSize(12, 12)
+c1:SetPoint("BOTTOM", extraPanel, "BOTTOM", -16, 12)
+local c1tex = c1:CreateTexture(nil, "BACKGROUND")
+c1tex:SetAllPoints(); c1tex:SetColorTexture(colors[1].r, colors[1].g, colors[1].b)
+c1:SetScript("OnClick", function() ApplyPanelColor(colors[1].r, colors[1].g, colors[1].b) end)
+
+local c2 = CreateFrame("Button", nil, extraPanel)
+c2:SetSize(12, 12)
+c2:SetPoint("LEFT", c1, "RIGHT", 4, 0)
+local c2tex = c2:CreateTexture(nil, "BACKGROUND")
+c2tex:SetAllPoints(); c2tex:SetColorTexture(colors[2].r, colors[2].g, colors[2].b)
+c2:SetScript("OnClick", function() ApplyPanelColor(colors[2].r, colors[2].g, colors[2].b) end)
+
+local c3 = CreateFrame("Button", nil, extraPanel)
+c3:SetSize(12, 12)
+c3:SetPoint("LEFT", c2, "RIGHT", 4, 0)
+local c3tex = c3:CreateTexture(nil, "BACKGROUND")
+c3tex:SetAllPoints(); c3tex:SetColorTexture(colors[3].r, colors[3].g, colors[3].b)
+c3:SetScript("OnClick", function() ApplyPanelColor(colors[3].r, colors[3].g, colors[3].b) end)
 
 ----------------------------------------------------------------------
 --  Botón expandir / colapsar
@@ -474,6 +574,25 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
 
         -- Restaurar estado del pin
         pinButton:SetChecked(VuMasterDB.pinned)
+
+        -- Restaurar estado de silencio visual
+        local isActuallyMuted = (tonumber(GetCVar("Sound_EnableAllSound")) or 1) == 0
+        if VuMasterDB.isMuted ~= isActuallyMuted then
+            VuMasterDB.isMuted = isActuallyMuted
+        end
+        _G["VuMasterMuteButton"]:GetNormalTexture() -- Not used directly, using muteIcon:
+        -- Access local texture by traversing
+        local regions = {_G["VuMasterMuteButton"]:GetRegions()}
+        for _, reg in ipairs(regions) do
+            if reg:GetObjectType() == "Texture" and reg:GetDrawLayer() == "ARTWORK" then
+                reg:SetAtlas(VuMasterDB.isMuted and "voicechat-icon-speaker-mute" or "voicechat-icon-speaker")
+            end
+        end
+
+        -- Restaurar color
+        if VuMasterDB.panelColor then
+            ApplyPanelColor(unpack(VuMasterDB.panelColor))
+        end
 
     elseif event == "PLAYER_LOGIN" then
         -- Sincronizar el slider con el volumen actual del juego

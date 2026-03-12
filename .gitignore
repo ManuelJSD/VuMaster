@@ -1,0 +1,28 @@
+# World of Warcraft Addon Gitignore
+
+# WoW generated files
+*.bak
+*.old
+*.lua.bak
+*.toc.bak
+
+# Common editor and IDE files
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Packaged addon files (if using a build script to create a zip)
+*.zip
+*.rar
+/.release/
+/release/
+
+# Antigravity / Agents
+.agents/
+skills-lock.json
+
+# Local images not used in the final addon
+icon.png
+icon.tga
