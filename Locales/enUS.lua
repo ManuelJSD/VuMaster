@@ -1,0 +1,22 @@
+local ADDON_NAME, ns = ...
+ns.L = ns.L or {}
+local L = ns.L
+
+L["TITLE"] = "Master Volume"
+L["TOOLTIP_TITLE"] = "VuMaster"
+L["TOOLTIP_VOL"] = "Volume: "
+L["TOOLTIP_DESC"] = "Click to adjust the master volume."
+L["MUTE_ALL"] = "Mute all"
+L["UNMUTE"] = "Unmute"
+L["PIN_SLIDER"] = "Pin slider"
+L["PIN_DESC"] = "Prevents the slider from closing when clicking outside."
+L["MORE_CONTROLS"] = "+ More controls"
+L["LESS_CONTROLS"] = "- Less controls"
+L["ADDITIONAL_CONTROLS"] = "Additional controls"
+L["CHANNELS_DESC"] = "Music, Sound Effects, Dialog, Ambience"
+L["MUSIC"] = "Music"
+L["SFX"] = "Sound Effects"
+L["DIALOG"] = "Dialog"
+L["AMBIENCE"] = "Ambience"
+L["RAID"] = "Raid"
+L["WORLD"] = "World"

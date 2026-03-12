@@ -6,4 +6,12 @@
 ## SavedVariables: VuMasterDB
 ## IconTexture: Interface\AddOns\VuMaster\icon
 
+Locales\enUS.lua
+Locales\esES.lua
+Locales\deDE.lua
+Locales\frFR.lua
+Locales\ptBR.lua
+Locales\ruRU.lua
+Locales\itIT.lua
 VuMaster.lua
+

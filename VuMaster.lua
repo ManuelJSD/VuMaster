@@ -3,8 +3,10 @@
 -- Autor: VuMaster Team  |  Licencia: MIT
 ----------------------------------------------------------------------
 
---- Namespace privado del addon
-local ADDON_NAME = ...
+--- Namespace privado del addon y de localización
+local ADDON_NAME, ns = ...
+local L = ns.L or {} -- Fallback seguro
+
 -- Usaremos un icono interno garantizado del juego mediante su ruta de textura.
 -- Fallback temporal a una textura sólida hasta que se corrija el PNG local.
 local ICON_TEXTURE = "Interface\\Icons\\Spell_Holy_SealOfSacrifice"
@@ -128,7 +130,7 @@ end)
 -- Título del panel
 local titleText = sliderPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 titleText:SetPoint("TOP", sliderPanel, "TOP", 0, -8)
-titleText:SetText("Volumen Maestro")
+titleText:SetText(L["TITLE"] or "Volumen Maestro")
 titleText:SetTextColor(1, 0.82, 0, 1) -- dorado
 
 -- Botón Mute
@@ -141,7 +143,7 @@ muteIcon:SetAtlas("voicechat-icon-speaker") -- Icono de altavoz inicial
 
 muteButton:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-    GameTooltip:SetText(VuMasterDB and VuMasterDB.isMuted and "Desilenciar" or "Silenciar todo", 1, 1, 1)
+    GameTooltip:SetText(VuMasterDB and VuMasterDB.isMuted and (L["UNMUTE"] or "Desilenciar") or (L["MUTE_ALL"] or "Silenciar todo"), 1, 1, 1)
     GameTooltip:Show()
 end)
 muteButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -152,7 +154,7 @@ muteButton:SetScript("OnClick", function()
     if VuMasterDB then VuMasterDB.isMuted = (newState == 0) end
     muteIcon:SetAtlas(newState == 0 and "voicechat-icon-speaker-mute" or "voicechat-icon-speaker")
     if GameTooltip:IsOwned(muteButton) then
-        GameTooltip:SetText(newState == 0 and "Desilenciar" or "Silenciar todo", 1, 1, 1)
+        GameTooltip:SetText(newState == 0 and (L["UNMUTE"] or "Desilenciar") or (L["MUTE_ALL"] or "Silenciar todo"), 1, 1, 1)
     end
 end)
 
@@ -183,8 +185,8 @@ pinButton:SetPoint("TOPRIGHT", sliderPanel, "TOPRIGHT", -4, -4)
 --- Tooltip del botón de pin
 pinButton:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-    GameTooltip:SetText("Anclar slider", 1, 1, 1)
-    GameTooltip:AddLine("Impide que el slider se cierre al hacer clic fuera.", nil, nil, nil, true)
+    GameTooltip:SetText(L["PIN_SLIDER"] or "Anclar slider", 1, 1, 1)
+    GameTooltip:AddLine(L["PIN_DESC"] or "Impide que el slider se cierre al hacer clic fuera.", nil, nil, nil, true)
     GameTooltip:Show()
 end)
 pinButton:SetScript("OnLeave", function()
@@ -218,11 +220,12 @@ extraPanel:SetBackdropBorderColor(0.45, 0.45, 0.55, 0.7)
 
 -- Tabla con los canales de sonido adicionales: {nombre, cvar}
 local soundChannels = {
-    { nombre = "Música",    cvar = "Sound_MusicVolume"    },
-    { nombre = "Efectos",   cvar = "Sound_SFXVolume"      },
-    { nombre = "Voces",     cvar = "Sound_DialogVolume"   },
-    { nombre = "Ambiente",  cvar = "Sound_AmbienceVolume" },
+    { nombre = L["MUSIC"]    or "Música",    cvar = "Sound_MusicVolume"    },
+    { nombre = L["SFX"]      or "Efectos",   cvar = "Sound_SFXVolume"      },
+    { nombre = L["DIALOG"]   or "Voces",     cvar = "Sound_DialogVolume"   },
+    { nombre = L["AMBIENCE"] or "Ambiente",  cvar = "Sound_AmbienceVolume" },
 }
+
 
 -- Referencia a cada slider extra para sincronizarlos luego
 local extraSliders = {}
@@ -296,12 +299,13 @@ end
 local btnBanda = CreateFrame("Button", "VuMasterProfileRaid", extraPanel, "UIPanelButtonTemplate")
 btnBanda:SetSize(55, 20)
 btnBanda:SetPoint("BOTTOMLEFT", extraPanel, "BOTTOMLEFT", 6, 8)
-btnBanda:SetText("Banda")
+btnBanda:SetText(L["RAID"] or "Banda")
 
 local btnPaseo = CreateFrame("Button", "VuMasterProfileWorld", extraPanel, "UIPanelButtonTemplate")
 btnPaseo:SetSize(55, 20)
 btnPaseo:SetPoint("BOTTOMRIGHT", extraPanel, "BOTTOMRIGHT", -6, 8)
-btnPaseo:SetText("Paseo")
+btnPaseo:SetText(L["WORLD"] or "Paseo")
+
 
 -- Forward declaration needed for SyncExtraSliders which is defined below
 -- but we simply inline the setting or rely on the game updating it
@@ -365,7 +369,7 @@ expandButton:SetPoint("BOTTOM", sliderPanel, "BOTTOM", 0, 4)
 -- Texto del botón
 local expandLabel = expandButton:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 expandLabel:SetAllPoints()
-expandLabel:SetText("+ Más controles")
+expandLabel:SetText(L["MORE_CONTROLS"] or "+ Más controles")
 expandLabel:SetTextColor(0.8, 0.8, 0.8, 1)
 
 -- Resaltado al pasar el ratón
@@ -374,8 +378,8 @@ expandButton:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "
 expandButton:SetScript("OnEnter", function(self)
     expandLabel:SetTextColor(1, 0.82, 0, 1)
     GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
-    GameTooltip:SetText("Controles adicionales", 1, 0.82, 0)
-    GameTooltip:AddLine("Música, Efectos, Voces, Ambiente", 0.7, 0.7, 0.7)
+    GameTooltip:SetText(L["ADDITIONAL_CONTROLS"] or "Controles adicionales", 1, 0.82, 0)
+    GameTooltip:AddLine(L["CHANNELS_DESC"] or "Música, Efectos, Voces, Ambiente", 0.7, 0.7, 0.7)
     GameTooltip:Show()
 end)
 expandButton:SetScript("OnLeave", function()
@@ -397,17 +401,18 @@ local function ToggleExtraPanel()
         -- Colapsar
         extraPanel:Hide()
         sliderPanel:SetHeight(PANEL_H_COLLAPSED)
-        expandLabel:SetText("+ Más controles")
+        expandLabel:SetText(L["MORE_CONTROLS"] or "+ Más controles")
         if VuMasterDB then VuMasterDB.expanded = false end
     else
         -- Expandir
         SyncExtraSliders()
         sliderPanel:SetHeight(PANEL_H_EXPANDED)
         extraPanel:Show()
-        expandLabel:SetText("- Menos controles")
+        expandLabel:SetText(L["LESS_CONTROLS"] or "- Menos controles")
         if VuMasterDB then VuMasterDB.expanded = true end
     end
 end
+
 
 expandButton:SetScript("OnClick", function()
     ToggleExtraPanel()
@@ -472,7 +477,7 @@ local function ToggleSliderPanel()
             SyncExtraSliders()
             sliderPanel:SetHeight(PANEL_H_EXPANDED)
             extraPanel:Show()
-            expandLabel:SetText("- Menos controles")
+            expandLabel:SetText(L["LESS_CONTROLS"] or "- Menos controles")
         end
     end
 end
@@ -507,10 +512,10 @@ end)
 -- Tooltip del botón del minimapa
 minimapButton:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-    GameTooltip:SetText("VuMaster", 1, 0.82, 0)
+    GameTooltip:SetText(L["TOOLTIP_TITLE"] or "VuMaster", 1, 0.82, 0)
     local vol = tonumber(GetCVar("Sound_MasterVolume")) or 1
-    GameTooltip:AddLine("Volumen: " .. math.floor(vol * 100 + 0.5) .. "%", 1, 1, 1)
-    GameTooltip:AddLine("Clic para ajustar el volumen maestro.", 0.7, 0.7, 0.7)
+    GameTooltip:AddLine((L["TOOLTIP_VOL"] or "Volumen: ") .. math.floor(vol * 100 + 0.5) .. "%", 1, 1, 1)
+    GameTooltip:AddLine(L["TOOLTIP_DESC"] or "Clic para ajustar el volumen maestro.", 0.7, 0.7, 0.7)
     GameTooltip:Show()
 end)
 
