@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "skills": {
+    "wow-addon-structure": {
+      "source": "jburlison/wowaddonapiagents",
+      "sourceType": "github",
+      "computedHash": "7adf2319fc494d2247b89434211509a1418186291024368453dc5717e555cc3a"
+    },
+    "wow-api-lua-environment": {
+      "source": "jburlison/wowaddonapiagents",
+      "sourceType": "github",
+      "computedHash": "e863976b7b689a940b7ed12137094f18a39ec58bc788ef18e423ed9307d2bc4f"
+    },
+    "wow-api-settings-system": {
+      "source": "jburlison/wowaddonapiagents",
+      "sourceType": "github",
+      "computedHash": "d1035d2d21e58a9d154970770e3e5d00b69c3ae0c59826470d732d0187d6209c"
+    },
+    "wow-lua-api": {
+      "source": "jburlison/wowaddonapiagents",
+      "sourceType": "github",
+      "computedHash": "eb97e7183d9210312c42d767707618acd4d5889b87cbf1d3517efab01a0bad60"
+    }
+  }
+}

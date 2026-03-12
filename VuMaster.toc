@@ -1,0 +1,9 @@
+## Interface: 120001
+## Title: VuMaster
+## Notes: Control rápido del volumen maestro desde el minimapa.
+## Author: VuMaster Team
+## Version: 1.0.0
+## SavedVariables: VuMasterDB
+## IconTexture: Interface\AddOns\VuMaster\icon
+
+VuMaster.lua
