@@ -193,10 +193,32 @@ pinButton:SetScript("OnLeave", function()
     GameTooltip:Hide()
 end)
 
+local function UpdatePinState(isPinned)
+    if VuMasterDB then VuMasterDB.pinned = isPinned end
+    if isPinned then
+        for i = #UISpecialFrames, 1, -1 do
+            if UISpecialFrames[i] == "VuMasterSliderPanel" then
+                tremove(UISpecialFrames, i)
+            end
+        end
+    else
+        local found = false
+        for i = 1, #UISpecialFrames do
+            if UISpecialFrames[i] == "VuMasterSliderPanel" then
+                found = true
+                break
+            end
+        end
+        if not found then
+            tinsert(UISpecialFrames, "VuMasterSliderPanel")
+        end
+    end
+end
+
 pinButton:SetScript("OnClick", function(self)
-    VuMasterDB.pinned = self:GetChecked()
+    UpdatePinState(self:GetChecked())
     -- Al anclar, el panel permanece visible aunque se haga clic fuera
-    -- (GLOBAL_MOUSE_DOWN respeta VuMasterDB.pinned para no cerrar el panel)
+    -- (y no se cierra con Escape, ya que se quita de UISpecialFrames)
 end)
 
 ----------------------------------------------------------------------
@@ -486,8 +508,8 @@ end
 --  Ocultar al hacer clic fuera (si no está anclado)
 ----------------------------------------------------------------------
 
--- Registrar el panel para cerrar con Escape
-tinsert(UISpecialFrames, "VuMasterSliderPanel")
+-- El registro en UISpecialFrames se maneja dinámicamente en UpdatePinState
+-- para evitar que el panel se cierre con Escape cuando está anclado.
 
 -- NOTA: se usa GLOBAL_MOUSE_DOWN en lugar de un frame invisible (clickCatcher).
 -- El clickCatcher bloqueaba el arrastre derecho del ratón para mover la cámara.
@@ -579,6 +601,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
 
         -- Restaurar estado del pin
         pinButton:SetChecked(VuMasterDB.pinned)
+        UpdatePinState(VuMasterDB.pinned)
 
         -- Restaurar estado de silencio visual
         local isActuallyMuted = (tonumber(GetCVar("Sound_EnableAllSound")) or 1) == 0

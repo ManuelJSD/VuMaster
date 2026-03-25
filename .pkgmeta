@@ -1,0 +1,9 @@
+package-as: VuMaster
+enable-split-localization: true
+
+ignore:
+    - .agents
+    - skills-lock.json
+    - .gitignore
+    - README.md
+    - .git

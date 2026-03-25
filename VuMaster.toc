@@ -4,6 +4,9 @@
 ## Author: VuMaster Team
 ## Version: 1.0.0
 ## SavedVariables: VuMasterDB
+## X-Curse-Project-ID: [Tu ID de CurseForge aquí]
+## X-Wago-ID: [Tu ID de Wago aquí]
+## Category: Audio
 ## IconTexture: Interface\AddOns\VuMaster\icon
 
 Locales\enUS.lua
