@@ -7,6 +7,30 @@
 local ADDON_NAME, ns = ...
 local L = ns.L or {} -- Fallback seguro
 
+--- Detección de versión: true si estamos en Classic (MoP Classic, Cata, Era...)
+local IS_CLASSIC = (WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE)
+
+--- Helper para usar SetAtlas con fallback seguro a SetTexture.
+--- En MoP Classic algunos atlas podrían no existir; esta función
+--- intenta SetAtlas y, si el atlas no se encuentra, usa la textura alternativa.
+--- @param texture Texture  Objeto de textura a configurar.
+--- @param atlas   string   Nombre del atlas deseado.
+--- @param fallback string  Ruta de textura alternativa.
+local function SafeSetAtlas(texture, atlas, fallback)
+    if texture.SetAtlas and C_Texture and C_Texture.GetAtlasInfo
+       and C_Texture.GetAtlasInfo(atlas) then
+        texture:SetAtlas(atlas)
+    else
+        texture:SetTexture(fallback)
+    end
+end
+
+-- Texturas fallback para el icono de mute (compatibilidad Classic)
+local MUTE_ATLAS_ON   = "voicechat-icon-speaker"
+local MUTE_ATLAS_OFF  = "voicechat-icon-speaker-mute"
+local MUTE_TEX_ON     = "Interface\\Common\\VoiceChat-Speaker"
+local MUTE_TEX_OFF    = "Interface\\Common\\VoiceChat-SpeakerMute"
+
 -- Usaremos un icono interno garantizado del juego mediante su ruta de textura.
 -- Fallback temporal a una textura sólida hasta que se corrija el PNG local.
 local ICON_TEXTURE = "Interface\\Icons\\Spell_Holy_SealOfSacrifice"
@@ -139,7 +163,7 @@ muteButton:SetSize(16, 16)
 muteButton:SetPoint("TOPLEFT", sliderPanel, "TOPLEFT", 6, -6)
 local muteIcon = muteButton:CreateTexture(nil, "ARTWORK")
 muteIcon:SetAllPoints()
-muteIcon:SetAtlas("voicechat-icon-speaker") -- Icono de altavoz inicial
+SafeSetAtlas(muteIcon, MUTE_ATLAS_ON, MUTE_TEX_ON) -- Icono de altavoz inicial
 
 muteButton:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -152,7 +176,9 @@ muteButton:SetScript("OnClick", function()
     local newState = (tonumber(GetCVar("Sound_EnableAllSound")) or 1) == 1 and 0 or 1
     SetCVar("Sound_EnableAllSound", newState)
     if VuMasterDB then VuMasterDB.isMuted = (newState == 0) end
-    muteIcon:SetAtlas(newState == 0 and "voicechat-icon-speaker-mute" or "voicechat-icon-speaker")
+    SafeSetAtlas(muteIcon,
+        newState == 0 and MUTE_ATLAS_OFF or MUTE_ATLAS_ON,
+        newState == 0 and MUTE_TEX_OFF  or MUTE_TEX_ON)
     if GameTooltip:IsOwned(muteButton) then
         GameTooltip:SetText(newState == 0 and (L["UNMUTE"] or "Desilenciar") or (L["MUTE_ALL"] or "Silenciar todo"), 1, 1, 1)
     end
@@ -165,7 +191,9 @@ volumeSlider:SetWidth(150)
 volumeSlider:SetHeight(17)
 volumeSlider:SetMinMaxValues(0, 100)
 volumeSlider:SetValueStep(1)
-volumeSlider:SetObeyStepOnDrag(true)
+if volumeSlider.SetObeyStepOnDrag then
+    volumeSlider:SetObeyStepOnDrag(true)
+end
 
 -- Etiqueta del valor actual
 local valueText = sliderPanel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -275,7 +303,9 @@ local function CreateSoundSlider(parent, info, index)
     sl:SetHeight(14)
     sl:SetMinMaxValues(0, 100)
     sl:SetValueStep(1)
-    sl:SetObeyStepOnDrag(true)
+    if sl.SetObeyStepOnDrag then
+        sl:SetObeyStepOnDrag(true)
+    end
 
     -- Ocultar etiquetas Low/High del template (muy pequeño el panel)
     local lowLbl  = _G["VuMaster_"..info.cvar.."_SliderLow"]
@@ -582,7 +612,10 @@ end)
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
-eventFrame:RegisterEvent("GLOBAL_MOUSE_DOWN")
+-- GLOBAL_MOUSE_DOWN podría no existir en Classic; registrar con pcall
+local hasGlobalMouseDown = pcall(function()
+    eventFrame:RegisterEvent("GLOBAL_MOUSE_DOWN")
+end)
 
 eventFrame:SetScript("OnEvent", function(_, event, arg1)
     if event == "ADDON_LOADED" and arg1 == ADDON_NAME then
@@ -608,12 +641,13 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         if VuMasterDB.isMuted ~= isActuallyMuted then
             VuMasterDB.isMuted = isActuallyMuted
         end
-        _G["VuMasterMuteButton"]:GetNormalTexture() -- Not used directly, using muteIcon:
-        -- Access local texture by traversing
+        -- Restaurar icono de mute al estado guardado (con fallback para Classic)
         local regions = {_G["VuMasterMuteButton"]:GetRegions()}
         for _, reg in ipairs(regions) do
             if reg:GetObjectType() == "Texture" and reg:GetDrawLayer() == "ARTWORK" then
-                reg:SetAtlas(VuMasterDB.isMuted and "voicechat-icon-speaker-mute" or "voicechat-icon-speaker")
+                SafeSetAtlas(reg,
+                    VuMasterDB.isMuted and MUTE_ATLAS_OFF or MUTE_ATLAS_ON,
+                    VuMasterDB.isMuted and MUTE_TEX_OFF  or MUTE_TEX_ON)
             end
         end
 
@@ -626,9 +660,10 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         -- Sincronizar el slider con el volumen actual del juego
         SyncSliderToCurrentVolume()
 
-    elseif event == "GLOBAL_MOUSE_DOWN" then
+    elseif event == "GLOBAL_MOUSE_DOWN" and hasGlobalMouseDown then
         -- Cerrar el panel si se hace clic izquierdo fuera de él y no está anclado.
         -- A diferencia del clickCatcher, este evento NO bloquea el ratón ni la cámara.
+        -- En Classic, si GLOBAL_MOUSE_DOWN no existe, el panel se cierra con Escape/pin.
         local button = arg1
         if button == "LeftButton"
             and not VuMasterDB.pinned

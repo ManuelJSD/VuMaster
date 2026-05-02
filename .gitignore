@@ -18,6 +18,7 @@
 *.rar
 /.release/
 /release/
+_package_temp/
 
 # Antigravity / Agents
 .agents/
