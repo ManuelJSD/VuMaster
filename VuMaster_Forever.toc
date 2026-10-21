@@ -1,0 +1,20 @@
+## Interface: 16001
+## Title: VuMaster
+## Notes: Control rápido del volumen maestro desde el minimapa.
+## Author: VuMaster Team
+## Version: 1.1.0
+## SavedVariables: VuMasterDB
+## X-Curse-Project-ID: [Tu ID de CurseForge aquí]
+## X-Wago-ID: [Tu ID de Wago aquí]
+## Category: Audio
+## IconTexture: Interface\AddOns\VuMaster\icon
+
+Locales\enUS.lua
+Locales\esES.lua
+Locales\deDE.lua
+Locales\frFR.lua
+Locales\ptBR.lua
+Locales\ruRU.lua
+Locales\itIT.lua
+VuMaster.lua
+Options.lua

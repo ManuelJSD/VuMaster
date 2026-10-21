@@ -26,7 +26,11 @@ echo [*] Copiando archivos...
 
 copy "%~dp0VuMaster.toc"          "%TEMP_DIR%\%ADDON_NAME%\" >nul
 copy "%~dp0VuMaster-Classic.toc"  "%TEMP_DIR%\%ADDON_NAME%\" >nul
+copy "%~dp0VuMaster_Classic.toc"  "%TEMP_DIR%\%ADDON_NAME%\" >nul
+copy "%~dp0VuMaster-Forever.toc"  "%TEMP_DIR%\%ADDON_NAME%\" >nul
+copy "%~dp0VuMaster_Forever.toc"  "%TEMP_DIR%\%ADDON_NAME%\" >nul
 copy "%~dp0VuMaster.lua"          "%TEMP_DIR%\%ADDON_NAME%\" >nul
+copy "%~dp0Options.lua"           "%TEMP_DIR%\%ADDON_NAME%\" >nul
 copy "%~dp0icon_v2.png"           "%TEMP_DIR%\%ADDON_NAME%\" >nul
 
 REM --- Copiar carpeta de localizaciones ---

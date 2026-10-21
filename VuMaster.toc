@@ -1,4 +1,6 @@
-## Interface: 120005
+## Interface: 120100
+## Interface-Classic: 50504
+## Interface-Forever: 16001
 ## Title: VuMaster
 ## Notes: Control rápido del volumen maestro desde el minimapa.
 ## Author: VuMaster Team
@@ -17,4 +19,4 @@ Locales\ptBR.lua
 Locales\ruRU.lua
 Locales\itIT.lua
 VuMaster.lua
-
+Options.lua

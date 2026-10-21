@@ -7,8 +7,12 @@
 local ADDON_NAME, ns = ...
 local L = ns.L or {} -- Fallback seguro
 
---- Detección de versión: true si estamos en Classic (MoP Classic, Cata, Era...)
-local IS_CLASSIC = (WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE)
+--- Detección de versión del juego (Retail, WoW Forever / Camelot, Classic)
+local tocVersion = select(4, GetBuildInfo())
+local IS_FOREVER = (WOW_PROJECT_ID == rawget(_G, "WOW_PROJECT_CAMELOT"))
+    or (WOW_PROJECT_ID == rawget(_G, "WOW_PROJECT_FOREVER"))
+    or (tocVersion and tocVersion >= 16000 and tocVersion < 20000)
+local IS_CLASSIC = (WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE) and not IS_FOREVER
 
 --- Helper para usar SetAtlas con fallback seguro a SetTexture.
 --- En MoP Classic algunos atlas podrían no existir; esta función
@@ -45,19 +49,111 @@ local defaults = {
     sliderPos  = nil,   -- {x, y} posición guardada del panel; nil = junto al minimapa
     expanded   = false, -- sub-panel de sonidos adicionales expandido
     isMuted    = false, -- estado de silencio global
-    panelColor = {0.1, 0.1, 0.1, 0.85}, -- color de fondo del panel (Classic Noir)
+    skin       = "Modern", -- skin por defecto (ahora Tooltip es Modern)
+    customBgColor = {0.1, 0.1, 0.1, 0.85},
+    customBorderColor = {0.6, 0.6, 0.6, 0.8},
+    hideMinimap = false,
+    panelScale = 1.0,
 }
 
 -- Altura del panel en cada estado
 local PANEL_H_COLLAPSED = 70
 local PANEL_H_EXPANDED  = 225
 
---- Helper para aplicar el color a los paneles
-local function ApplyPanelColor(r, g, b, a)
-    local col = {r, g, b, a or 0.85}
-    if VuMasterDB then VuMasterDB.panelColor = col end
-    if VuMasterSliderPanel then VuMasterSliderPanel:SetBackdropColor(unpack(col)) end
-    if VuMasterExtraPanel then VuMasterExtraPanel:SetBackdropColor(unpack(col)) end
+----------------------------------------------------------------------
+--  Definición de Skins
+----------------------------------------------------------------------
+ns.Skins = {
+    ["Classic"] = {
+        name = L["SKIN_CLASSIC"] or "Clásico (Blizzard)",
+        backdrop = {
+            bgFile   = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
+            edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+            tile     = true,
+            tileSize = 32,
+            edgeSize = 32,
+            insets   = { left = 11, right = 12, top = 12, bottom = 11 },
+        },
+        bgColor = {1, 1, 1, 0.9},
+        borderColor = {1, 1, 1, 1},
+        extraBgColor = {1, 1, 1, 0.9},
+        extraBorderColor = {1, 1, 1, 1},
+    },
+    ["ElvUI"] = {
+        name = L["SKIN_ELVUI"] or "Minimalista (ElvUI)",
+        backdrop = {
+            bgFile   = "Interface\\Buttons\\WHITE8x8",
+            edgeFile = "Interface\\Buttons\\WHITE8x8",
+            tile     = false,
+            tileSize = 0,
+            edgeSize = 1,
+            insets   = { left = 1, right = 1, top = 1, bottom = 1 },
+        },
+        bgColor = {0.06, 0.06, 0.06, 0.9},
+        borderColor = {0, 0, 0, 1},
+        extraBgColor = {0.06, 0.06, 0.06, 0.9},
+        extraBorderColor = {0, 0, 0, 1},
+    },
+    ["Modern"] = {
+        name = L["SKIN_MODERN"] or "Moderno (Limpio)",
+        backdrop = {
+            bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile     = true,
+            tileSize = 16,
+            edgeSize = 16,
+            insets   = { left = 4, right = 4, top = 4, bottom = 4 },
+        },
+        bgColor = {0.1, 0.1, 0.1, 0.85},
+        borderColor = {0.6, 0.6, 0.6, 0.8},
+        extraBgColor = {0.08, 0.08, 0.12, 0.9},
+        extraBorderColor = {0.45, 0.45, 0.55, 0.7},
+    },
+    ["Custom"] = {
+        name = L["SKIN_CUSTOM"] or "Personalizado",
+        backdrop = {
+            bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile     = true,
+            tileSize = 16,
+            edgeSize = 16,
+            insets   = { left = 4, right = 4, top = 4, bottom = 4 },
+        },
+    }
+}
+
+--- Aplica el skin actual a los paneles
+function ns.ApplySkin()
+    if not VuMasterDB then return end
+    local skinID = VuMasterDB.skin or "Classic"
+    local skin = ns.Skins[skinID]
+    if not skin then skin = ns.Skins["Classic"] end
+
+    -- Aplicar a SliderPanel
+    if VuMasterSliderPanel then
+        VuMasterSliderPanel:SetBackdrop(skin.backdrop)
+        if skinID == "Custom" then
+            VuMasterSliderPanel:SetBackdropColor(unpack(VuMasterDB.customBgColor or {0.1,0.1,0.1,0.85}))
+            VuMasterSliderPanel:SetBackdropBorderColor(unpack(VuMasterDB.customBorderColor or {0.6,0.6,0.6,0.8}))
+        else
+            VuMasterSliderPanel:SetBackdropColor(unpack(skin.bgColor))
+            VuMasterSliderPanel:SetBackdropBorderColor(unpack(skin.borderColor))
+        end
+    end
+
+    -- Aplicar a ExtraPanel
+    if VuMasterExtraPanel then
+        VuMasterExtraPanel:SetBackdrop(skin.backdrop)
+        if skinID == "Custom" then
+            local r, g, b, a = unpack(VuMasterDB.customBgColor or {0.1,0.1,0.1,0.85})
+            -- El extra panel lo hacemos un poco más oscuro o igual en custom
+            VuMasterExtraPanel:SetBackdropColor(math.max(r-0.02, 0), math.max(g-0.02, 0), math.max(b-0.02, 0), a)
+            VuMasterExtraPanel:SetBackdropBorderColor(unpack(VuMasterDB.customBorderColor or {0.6,0.6,0.6,0.8}))
+        else
+            VuMasterExtraPanel:SetBackdropColor(unpack(skin.extraBgColor))
+            VuMasterExtraPanel:SetBackdropBorderColor(unpack(skin.extraBorderColor))
+        end
+    end
 end
 
 ----------------------------------------------------------------------
@@ -96,6 +192,11 @@ minimapButton:RegisterForDrag("LeftButton")
 minimapButton:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 minimapButton:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
 
+-- Engañar a Addons como ElvUI o ProjectAzilroka para que no sobreescriban nuestro tooltip
+-- quejándose de que no usamos LibDBIcon.
+minimapButton.isDBIcon = true
+minimapButton.isLibDBIcon = true
+
 -- Volvemos al fallback local, pero apuntando a la versión estricta generada 
 -- (icon_v2.png) que hemos introducido en la base de datos de addons de WoW.
 local iconTex = minimapButton:CreateTexture(nil, "ARTWORK")
@@ -122,14 +223,7 @@ sliderPanel:SetFrameStrata("DIALOG")
 sliderPanel:SetClampedToScreen(true)
 sliderPanel:Hide()
 
-sliderPanel:SetBackdrop({
-    bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
-    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-    tile     = true,
-    tileSize = 16,
-    edgeSize = 16,
-    insets   = { left = 4, right = 4, top = 4, bottom = 4 },
-})
+sliderPanel:SetBackdrop(ns.Skins["Classic"].backdrop)
 sliderPanel:SetBackdropColor(0.1, 0.1, 0.1, 0.85)
 sliderPanel:SetBackdropBorderColor(0.6, 0.6, 0.6, 0.8)
 
@@ -257,14 +351,7 @@ extraPanel:SetSize(192, 145)
 extraPanel:SetPoint("TOP", volumeSlider, "BOTTOM", 0, -22)
 extraPanel:Hide()
 
-extraPanel:SetBackdrop({
-    bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
-    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-    tile     = true,
-    tileSize = 16,
-    edgeSize = 12,
-    insets   = { left = 3, right = 3, top = 3, bottom = 3 },
-})
+extraPanel:SetBackdrop(ns.Skins["Classic"].backdrop)
 extraPanel:SetBackdropColor(0.08, 0.08, 0.12, 0.9)
 extraPanel:SetBackdropBorderColor(0.45, 0.45, 0.55, 0.7)
 
@@ -384,32 +471,7 @@ btnPaseo:SetScript("OnClick", function()
     extraSliders[4]:SetValue(80)
 end)
 
--- Temas de Color (3 cuadros pequeños centrados en la parte inferior de extraPanel)
-local colors = {
-    {r=0.1,  g=0.1,  b=0.1},   -- Noir/Classic
-    {r=0.25, g=0.05, b=0.05},  -- Horda
-    {r=0.05, g=0.1,  b=0.25},  -- Alianza
-}
-local c1 = CreateFrame("Button", nil, extraPanel)
-c1:SetSize(12, 12)
-c1:SetPoint("BOTTOM", extraPanel, "BOTTOM", -16, 12)
-local c1tex = c1:CreateTexture(nil, "BACKGROUND")
-c1tex:SetAllPoints(); c1tex:SetColorTexture(colors[1].r, colors[1].g, colors[1].b)
-c1:SetScript("OnClick", function() ApplyPanelColor(colors[1].r, colors[1].g, colors[1].b) end)
-
-local c2 = CreateFrame("Button", nil, extraPanel)
-c2:SetSize(12, 12)
-c2:SetPoint("LEFT", c1, "RIGHT", 4, 0)
-local c2tex = c2:CreateTexture(nil, "BACKGROUND")
-c2tex:SetAllPoints(); c2tex:SetColorTexture(colors[2].r, colors[2].g, colors[2].b)
-c2:SetScript("OnClick", function() ApplyPanelColor(colors[2].r, colors[2].g, colors[2].b) end)
-
-local c3 = CreateFrame("Button", nil, extraPanel)
-c3:SetSize(12, 12)
-c3:SetPoint("LEFT", c2, "RIGHT", 4, 0)
-local c3tex = c3:CreateTexture(nil, "BACKGROUND")
-c3tex:SetAllPoints(); c3tex:SetColorTexture(colors[3].r, colors[3].g, colors[3].b)
-c3:SetScript("OnClick", function() ApplyPanelColor(colors[3].r, colors[3].g, colors[3].b) end)
+-- Se eliminaron los temas de color (reemplazados por el Panel de Opciones)
 
 ----------------------------------------------------------------------
 --  Botón expandir / colapsar
@@ -558,16 +620,21 @@ end)
 minimapButton:SetScript("OnClick", function(_, button)
     if button == "LeftButton" then
         ToggleSliderPanel()
+    elseif button == "RightButton" and ns.ToggleOptionsPanel then
+        ns.ToggleOptionsPanel()
     end
 end)
 
 -- Tooltip del botón del minimapa
 minimapButton:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+    GameTooltip:ClearLines()
     GameTooltip:SetText(L["TOOLTIP_TITLE"] or "VuMaster", 1, 0.82, 0)
     local vol = tonumber(GetCVar("Sound_MasterVolume")) or 1
     GameTooltip:AddLine((L["TOOLTIP_VOL"] or "Volumen: ") .. math.floor(vol * 100 + 0.5) .. "%", 1, 1, 1)
-    GameTooltip:AddLine(L["TOOLTIP_DESC"] or "Clic para ajustar el volumen maestro.", 0.7, 0.7, 0.7)
+    GameTooltip:AddLine(L["TOOLTIP_DESC"] or "Clic Izquierdo: Abrir slider de volumen", 0.7, 0.7, 0.7)
+    GameTooltip:AddLine(L["TOOLTIP_DESC_OPTIONS"] or "Clic Derecho: Abrir opciones pro", 0.7, 0.7, 0.7)
+    GameTooltip:AddLine(L["TOOLTIP_DRAG"] or "Mantener presionado para arrastrar", 0.5, 0.5, 0.5)
     GameTooltip:Show()
 end)
 
@@ -651,10 +718,18 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
             end
         end
 
-        -- Restaurar color
-        if VuMasterDB.panelColor then
-            ApplyPanelColor(unpack(VuMasterDB.panelColor))
+        -- Aplicar Opciones Generales (escala y visibilidad del minimapa)
+        if VuMasterDB.hideMinimap then
+            minimapButton:Hide()
+        else
+            minimapButton:Show()
         end
+        if VuMasterDB.panelScale then
+            sliderPanel:SetScale(VuMasterDB.panelScale)
+        end
+
+        -- Aplicar Skin
+        ns.ApplySkin()
 
     elseif event == "PLAYER_LOGIN" then
         -- Sincronizar el slider con el volumen actual del juego
